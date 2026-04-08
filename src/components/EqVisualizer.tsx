@@ -1,55 +1,83 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 interface EqVisualizerProps {
   isPlaying: boolean;
   barCount?: number;
 }
 
-export default function EqVisualizer({ isPlaying, barCount = 32 }: EqVisualizerProps) {
-  const [heights, setHeights] = useState<number[]>(
-    Array.from({ length: barCount }, () => Math.random() * 30 + 10)
-  );
+export default function EqVisualizer({ isPlaying, barCount = 24 }: EqVisualizerProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stateRef = useRef({ isPlaying, heights: new Float32Array(barCount) });
+  const animFrameRef = useRef<number>(0);
+  const lastTickRef = useRef(0);
 
   useEffect(() => {
+    stateRef.current.isPlaying = isPlaying;
     if (!isPlaying) {
-      setHeights(Array.from({ length: barCount }, () => 10));
-      return;
+      stateRef.current.heights.fill(10);
     }
+  }, [isPlaying]);
 
-    const interval = setInterval(() => {
-      setHeights(
-        Array.from({ length: barCount }, (_, i) => {
-          // Create a more musical-looking pattern
-          const base = Math.sin(Date.now() / 300 + i * 0.5) * 20 + 30;
-          const random = Math.random() * 30;
-          return Math.max(5, Math.min(100, base + random));
-        })
-      );
-    }, 80);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    return () => clearInterval(interval);
-  }, [isPlaying, barCount]);
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
+    const barW = (W - (barCount - 1) * 2) / barCount;
+
+    // 그라데이션 한 번만 생성
+    const grad = ctx.createLinearGradient(0, H, 0, 0);
+    grad.addColorStop(0, "rgba(79, 70, 229, 0.6)");
+    grad.addColorStop(1, "rgba(6, 182, 212, 0.9)");
+    const gradIdle = ctx.createLinearGradient(0, H, 0, 0);
+    gradIdle.addColorStop(0, "rgba(255,255,255,0.05)");
+    gradIdle.addColorStop(1, "rgba(255,255,255,0.1)");
+
+    const TICK_INTERVAL = 120; // 80ms → 120ms (33% 부하 감소)
+
+    const draw = (now: number) => {
+      const { isPlaying, heights } = stateRef.current;
+
+      // 높이 업데이트는 120ms마다만
+      if (isPlaying && now - lastTickRef.current > TICK_INTERVAL) {
+        lastTickRef.current = now;
+        for (let i = 0; i < barCount; i++) {
+          const base = Math.sin(now / 400 + i * 0.5) * 18 + 28;
+          const rnd = Math.random() * 25;
+          heights[i] = Math.max(5, Math.min(100, base + rnd));
+        }
+      }
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = isPlaying ? grad : gradIdle;
+
+      for (let i = 0; i < barCount; i++) {
+        const h = (heights[i] / 100) * H;
+        const x = i * (barW + 2);
+        ctx.fillRect(x, H - h, barW, h);
+      }
+
+      animFrameRef.current = requestAnimationFrame(draw);
+    };
+
+    animFrameRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [barCount]);
 
   return (
-    <div className="flex items-end gap-[2px] h-16 px-2">
-      {heights.map((height, i) => (
-        <div
-          key={i}
-          className="waveform-bar flex-1"
-          style={{
-            height: `${height}%`,
-            transition: isPlaying ? "height 0.08s ease" : "height 0.3s ease",
-            background: isPlaying
-              ? `linear-gradient(to top,
-                  rgba(79, 70, 229, ${0.4 + (i / barCount) * 0.4}),
-                  rgba(6, 182, 212, ${0.6 + (i / barCount) * 0.4})
-                )`
-              : "rgba(255,255,255,0.1)",
-          }}
-        />
-      ))}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="w-full h-16"
+      style={{ display: "block" }}
+    />
   );
 }

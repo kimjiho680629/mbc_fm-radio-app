@@ -9,21 +9,13 @@ interface VinylRecordProps {
 export default function VinylRecord({ isPlaying }: VinylRecordProps) {
   return (
     <div className="relative w-64 h-64 mx-auto">
-      {/* Outer glow rings */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        animate={
-          isPlaying
-            ? {
-                boxShadow: [
-                  "0 0 30px rgba(79,70,229,0.3), 0 0 60px rgba(79,70,229,0.1)",
-                  "0 0 60px rgba(79,70,229,0.6), 0 0 100px rgba(79,70,229,0.3)",
-                  "0 0 30px rgba(79,70,229,0.3), 0 0 60px rgba(79,70,229,0.1)",
-                ],
-              }
-            : { boxShadow: "0 0 20px rgba(79,70,229,0.2)" }
-        }
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      {/* Glow ring — opacity만 변경 (boxShadow 애니메이션 제거, GPU 가속) */}
+      <div
+        className="absolute inset-0 rounded-full transition-opacity duration-700"
+        style={{
+          boxShadow: "0 0 40px rgba(79,70,229,0.4), 0 0 80px rgba(79,70,229,0.2)",
+          opacity: isPlaying ? 1 : 0.3,
+        }}
       />
 
       {/* Vinyl disc */}
@@ -32,7 +24,7 @@ export default function VinylRecord({ isPlaying }: VinylRecordProps) {
         animate={isPlaying ? { rotate: 360 } : { rotate: 0 }}
         transition={
           isPlaying
-            ? { duration: 3, repeat: Infinity, ease: "linear" }
+            ? { duration: 4, repeat: Infinity, ease: "linear" }
             : { duration: 0.5 }
         }
       >
@@ -43,20 +35,18 @@ export default function VinylRecord({ isPlaying }: VinylRecordProps) {
           </div>
         </div>
 
-        {/* Grooves with color bands */}
+        {/* Grooves */}
         {[85, 95, 105, 115, 125].map((size, i) => (
           <div
             key={i}
-            className="absolute rounded-full border border-opacity-10"
+            className="absolute rounded-full"
             style={{
               width: size,
               height: size,
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)",
-              borderColor: i % 2 === 0
-                ? "rgba(79,70,229,0.15)"
-                : "rgba(6,182,212,0.15)",
+              border: `1px solid ${i % 2 === 0 ? "rgba(79,70,229,0.15)" : "rgba(6,182,212,0.15)"}`,
             }}
           />
         ))}
@@ -70,25 +60,17 @@ export default function VinylRecord({ isPlaying }: VinylRecordProps) {
         transition={{ duration: 0.8, ease: "easeInOut" }}
       >
         <div className="w-1 h-20 bg-gradient-to-b from-gray-300 to-gray-600 rounded-full relative">
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-indigo-400 shadow-glow" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-indigo-400" />
         </div>
       </motion.div>
 
-      {/* Sound wave rings when playing */}
-      {isPlaying && [1, 2, 3].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute inset-0 rounded-full border border-indigo-500"
-          initial={{ scale: 1, opacity: 0.6 }}
-          animate={{ scale: 1.5 + i * 0.3, opacity: 0 }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            delay: i * 0.5,
-            ease: "easeOut",
-          }}
-        />
-      ))}
+      {/* Sound wave rings — CSS animation으로 대체 (Framer Motion 3개 → CSS 2개) */}
+      {isPlaying && (
+        <>
+          <div className="absolute inset-0 rounded-full border border-indigo-400 wave-ring" style={{ animationDelay: "0s" }} />
+          <div className="absolute inset-0 rounded-full border border-indigo-400 wave-ring" style={{ animationDelay: "0.7s" }} />
+        </>
+      )}
     </div>
   );
 }
