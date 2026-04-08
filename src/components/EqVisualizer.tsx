@@ -1,83 +1,27 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+// JS 루프 없음 — 순수 CSS 애니메이션 (GPU transform만 사용)
+const BAR_COUNT = 16;
+const DURATIONS = [0.6, 0.8, 0.5, 0.9, 0.7, 1.0, 0.6, 0.75, 0.55, 0.85, 0.65, 0.95, 0.7, 0.8, 0.6, 0.9];
 
-interface EqVisualizerProps {
-  isPlaying: boolean;
-  barCount?: number;
-}
-
-export default function EqVisualizer({ isPlaying, barCount = 24 }: EqVisualizerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef({ isPlaying, heights: new Float32Array(barCount) });
-  const animFrameRef = useRef<number>(0);
-  const lastTickRef = useRef(0);
-
-  useEffect(() => {
-    stateRef.current.isPlaying = isPlaying;
-    if (!isPlaying) {
-      stateRef.current.heights.fill(10);
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-    const W = canvas.offsetWidth;
-    const H = canvas.offsetHeight;
-    const barW = (W - (barCount - 1) * 2) / barCount;
-
-    // 그라데이션 한 번만 생성
-    const grad = ctx.createLinearGradient(0, H, 0, 0);
-    grad.addColorStop(0, "rgba(79, 70, 229, 0.6)");
-    grad.addColorStop(1, "rgba(6, 182, 212, 0.9)");
-    const gradIdle = ctx.createLinearGradient(0, H, 0, 0);
-    gradIdle.addColorStop(0, "rgba(255,255,255,0.05)");
-    gradIdle.addColorStop(1, "rgba(255,255,255,0.1)");
-
-    const TICK_INTERVAL = 120; // 80ms → 120ms (33% 부하 감소)
-
-    const draw = (now: number) => {
-      const { isPlaying, heights } = stateRef.current;
-
-      // 높이 업데이트는 120ms마다만
-      if (isPlaying && now - lastTickRef.current > TICK_INTERVAL) {
-        lastTickRef.current = now;
-        for (let i = 0; i < barCount; i++) {
-          const base = Math.sin(now / 400 + i * 0.5) * 18 + 28;
-          const rnd = Math.random() * 25;
-          heights[i] = Math.max(5, Math.min(100, base + rnd));
-        }
-      }
-
-      ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = isPlaying ? grad : gradIdle;
-
-      for (let i = 0; i < barCount; i++) {
-        const h = (heights[i] / 100) * H;
-        const x = i * (barW + 2);
-        ctx.fillRect(x, H - h, barW, h);
-      }
-
-      animFrameRef.current = requestAnimationFrame(draw);
-    };
-
-    animFrameRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [barCount]);
-
+export default function EqVisualizer({ isPlaying }: { isPlaying: boolean }) {
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-16"
-      style={{ display: "block" }}
-    />
+    <div className="flex items-end gap-[3px] h-12 px-2" aria-hidden="true">
+      {DURATIONS.map((dur, i) => (
+        <div
+          key={i}
+          className="flex-1 rounded-sm eq-css-bar"
+          style={{
+            animationDuration: `${dur}s`,
+            animationDelay: `${(i * 0.07) % 0.5}s`,
+            animationPlayState: isPlaying ? "running" : "paused",
+            background: "linear-gradient(to top, rgba(79,70,229,0.7), rgba(6,182,212,0.9))",
+            height: isPlaying ? undefined : "4px",
+            opacity: isPlaying ? 1 : 0.3,
+            transition: "opacity 0.4s, height 0.4s",
+          }}
+        />
+      ))}
+    </div>
   );
 }

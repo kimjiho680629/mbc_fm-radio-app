@@ -139,13 +139,57 @@ input[type="range"]::-webkit-slider-thumb {
   50% { transform: translateY(-10px); }
 }
 
-/* Sound wave ring — GPU 가속 (transform/opacity만 사용) */
+/* Sound wave ring */
 .wave-ring {
   animation: waveRing 1.4s ease-out infinite;
   will-change: transform, opacity;
 }
-
 @keyframes waveRing {
   0%   { transform: scale(1);   opacity: 0.5; }
   100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Vinyl spin — CSS (Framer Motion 대체) */
+@keyframes vinylSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* CSS spin — 로딩 스피너 */
+.spin-css {
+  animation: spinOnce 1s linear infinite;
+  will-change: transform;
+}
+@keyframes spinOnce {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* EQ 바 — 순수 CSS, JS 없음 */
+.eq-css-bar {
+  min-height: 4px;
+  animation: eqBounce 0.7s ease-in-out infinite alternate;
+  will-change: transform;
+  transform-origin: bottom;
+}
+@keyframes eqBounce {
+  0%   { transform: scaleY(0.1); }
+  100% { transform: scaleY(1.0); }
+}
+
+/* fade-in */
+.fade-in {
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 탭 숨김 시 애니메이션 일괄 정지 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
