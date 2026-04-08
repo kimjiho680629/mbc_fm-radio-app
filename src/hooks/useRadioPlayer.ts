@@ -4,12 +4,18 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 export type PlayerState = "idle" | "loading" | "playing" | "paused" | "error";
 
-// MBC 표준FM 스트림 URL 목록 (HTTPS 우선, 프록시 fallback 포함)
-const STREAM_URLS = [
-  "https://miniplay.imbc.com/Live?id=sfm",
-  "/api/stream?src=0",       // Vercel 프록시 (CORS 우회)
-  "http://miniplay.imbc.com/Live?id=sfm&cmp=m",
-];
+// MBC 표준FM: /api/stream?mode=url 로 동적 HLS URL 획득 후 재생
+async function fetchStreamUrl(): Promise<string> {
+  try {
+    const res = await fetch("/api/stream?mode=url");
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    if (data.url) return data.url;
+  } catch {
+    // fallback: 직접 시도
+  }
+  return "https://sminiplay.imbc.com/aacplay.ashx?channel=sfm&agent=webapp&cmp=m";
+}
 
 export interface RadioPlayerState {
   playerState: PlayerState;
@@ -23,7 +29,6 @@ export function useRadioPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hlsRef = useRef<InstanceType<typeof import("hls.js")["default"]> | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const streamIndexRef = useRef(0);
 
   const [state, setState] = useState<RadioPlayerState>({
     playerState: "idle",
@@ -122,9 +127,6 @@ export function useRadioPlayer() {
   );
 
   const handleStreamError = useCallback(() => {
-    const nextIndex = (streamIndexRef.current + 1) % STREAM_URLS.length;
-    streamIndexRef.current = nextIndex;
-
     setState((prev) => {
       const newRetryCount = prev.retryCount + 1;
 
@@ -132,9 +134,10 @@ export function useRadioPlayer() {
         const delay = Math.min(1000 * Math.pow(2, newRetryCount - 1), 30000);
         if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
 
-        retryTimerRef.current = setTimeout(() => {
+        retryTimerRef.current = setTimeout(async () => {
           if (audioRef.current) {
-            initHls(audioRef.current, STREAM_URLS[streamIndexRef.current]);
+            const url = await fetchStreamUrl();
+            initHls(audioRef.current, url);
           }
         }, delay);
 
@@ -183,8 +186,8 @@ export function useRadioPlayer() {
     }
 
     updateState({ playerState: "loading", error: null });
-    streamIndexRef.current = 0;
-    await initHls(audioRef.current, STREAM_URLS[0]);
+    const url = await fetchStreamUrl();
+    await initHls(audioRef.current, url);
   }, [state.volume, state.isMuted, state.playerState, initHls, updateState, setupMediaSession, handleStreamError]);
 
   const pause = useCallback(() => {
