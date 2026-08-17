@@ -1,0 +1,33 @@
+{
+  "name": "MBC 표준FM 라디오",
+  "short_name": "MBC 라디오",
+  "description": "호주에서 끊김 없이 듣는 한국 MBC 표준FM (서울 95.9MHz) 실시간 라이브 스트리밍",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050510",
+  "theme_color": "#050510",
+  "scope": "/",
+  "categories": ["music", "entertainment", "news"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
